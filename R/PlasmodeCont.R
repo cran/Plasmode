@@ -117,7 +117,7 @@ PlasmodeCont<- function(formulaOut=NULL, objectOut=NULL,formulaExp=NULL,objectEx
     # estimate logit model for probability of outcome
     modOutCont<- glm2(formulaOut, family = "gaussian", data,control=glm.control(trace=TRUE))
     ## Design Matrix used for outcome logistic regression
-    X <- gam(formulaOut, data, family = "gaussian", fit = FALSE)$X
+    X <- gam(formulaOut, x, family = "gaussian", fit = FALSE)$X ### data must be sorted to correspond to "idxs" in sampling step below - JYH
     ##pred <- fitted(modOutCont)+rnorm(nrow(data),0,var(residuals(modOutCont))) # linear predictor
 
 
@@ -130,7 +130,7 @@ PlasmodeCont<- function(formulaOut=NULL, objectOut=NULL,formulaExp=NULL,objectEx
     ## Estimate logit model for probability of exposure
     modExp<- glm2(formulaExp, family = "binomial", data,control=glm.control(trace=TRUE))
     ## Design matrix used for exposure logistic regression
-    XEXP<- gam(formulaExp, data, family = "binomial", fit = FALSE)$X
+    XEXP<- gam(formulaExp, x, family = "binomial", fit = FALSE)$X ### here too - JYH
 
 
     # Finding the exposure prevalence in base cohort
@@ -145,9 +145,9 @@ PlasmodeCont<- function(formulaOut=NULL, objectOut=NULL,formulaExp=NULL,objectEx
     ids <- ynew <- expnew<-data.frame(matrix(nrow = size, ncol = nsim))
     RR<-RD<- vector('numeric', length = nsim)
     for(sim in 1:nsim) {
-      idxs <- sample(1:n, size, replace = TRUE) # sample unexposed (located in rows 1:n0 of x)
+      idxs <- sample(1:n, size, replace = TRUE) # sample unexposed (located in rows 1:n0 of x) - samples row orders from sorted "x"
       ids[1:size,sim] <- x[idxs, idVar]
-      ynew[,sim] <- Xbnew[idxs]
+      ynew[,sim] <- Xbnew[idxs] ### this draws from sorted "x" - JYH
       expnew[,sim]<- rbinom(size,1,Probexp[idxs])
       datasim<-X[idxs,]
       datasim[,2]<-1
@@ -185,7 +185,7 @@ PlasmodeCont<- function(formulaOut=NULL, objectOut=NULL,formulaExp=NULL,objectEx
     # estimate logit model for probability of outcome
     modOutCont<- glm2(formulaOut, family = "gaussian", data,control=glm.control(trace=TRUE))
     ## Design Matrix used for outcome logistic regression
-    X <- gam(formulaOut, data, family = "gaussian", fit = FALSE)$X
+    X <- gam(formulaOut, x, family = "gaussian", fit = FALSE)$X # corrected again here
     pred <- fitted(modOutCont) # linear predictor
 
     # find intercept value needed to get approximate desired event rate under new parameters
@@ -237,7 +237,7 @@ PlasmodeCont<- function(formulaOut=NULL, objectOut=NULL,formulaExp=NULL,objectEx
     ## Estimate logit model for probability of exposure
     modExp<- glm2(formulaExp, family = "binomial", data,control=glm.control(trace=TRUE))
     ## Design matrix used for exposure logistic regression
-    XEXP<- gam(formulaExp, data, family = "binomial", fit = FALSE)$X
+    XEXP<- gam(formulaExp, x, family = "binomial", fit = FALSE)$X ### corrected again here - JYH
 
 
     # Finding the exposure prevalence in base cohort
@@ -292,7 +292,7 @@ PlasmodeCont<- function(formulaOut=NULL, objectOut=NULL,formulaExp=NULL,objectEx
 
     # Finding the exposure prevalence in base cohort
     if(is.null(exposedPrev))exposedPrev<- sum(X[2])/nrow(X)
-    DesMatExp<-model.matrix(objectExp)
+    DesMatExp<-model.matrix(objectExp) ### Assume data will have to be sorted in the provided exposure object - JYH
     XEXP<- as.data.frame(DesMatExp)
 
     # Calculating intercept value needed to get approximate desired exposure prevalence under new parameters.
@@ -353,7 +353,7 @@ PlasmodeCont<- function(formulaOut=NULL, objectOut=NULL,formulaExp=NULL,objectEx
     OutCoeff<-coef(objectOut)
     bnew <- c(OutCoeff[1], MMOut*OutCoeff[-1])
     bnew <- replace(bnew, names(OutCoeff) == exposure, effectOR)
-    Xbnew <- as.vector(bnew%*%t(X))
+    Xbnew <- as.vector(bnew%*%t(X)) ### this should be fine because X matrix is explicitly pulled from pre-sorted "x" -- JYH
 
     ResVarOut<- var(residuals(objectOut))
     #### sample and simulate
@@ -406,7 +406,7 @@ PlasmodeCont<- function(formulaOut=NULL, objectOut=NULL,formulaExp=NULL,objectEx
 
     # Finding the exposure prevalence in base cohort
     if(is.null(exposedPrev))exposedPrev<- sum(X[1])/nrow(X)
-    XEXP<- as.data.frame(DesMatExp)
+    XEXP<- as.data.frame(DesMatExp)  ### Assume this must be sorted already in the input exposure object -- JYH
 
     # Calculating intercept value needed to get approximate desired exposure prevalence under new parameters.
     ExpCoeff<- coef(objectExp)
